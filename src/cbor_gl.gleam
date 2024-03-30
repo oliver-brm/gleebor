@@ -1,7 +1,5 @@
 import gleam/bit_array.{to_string}
-import gleam/iterator
 import gleam/result.{try}
-import gleam/list
 
 pub opaque type CborError {
   /// Indicates the input ended prematurely and decoding could not continue.
@@ -33,24 +31,28 @@ pub fn decode_int(a: BitArray) -> DecodeResult(Int) {
 
 fn decode_positive_int(a: BitArray) -> DecodeResult(Int) {
   case a {
-    <<24:5, val:int-unsigned-size(1), rest:bits>> -> Ok(#(val, rest))
-    <<25:5, val:int-unsigned-size(2), rest:bits>> -> Ok(#(val, rest))
-    <<26:5, val:int-unsigned-size(4), rest:bits>> -> Ok(#(val, rest))
-    <<27:5, val:int-unsigned-size(8), rest:bits>> -> Ok(#(val, rest))
-    <<x:5, _:bits>> if 27 < x -> Error(InvalidMajorArg(x))
-    <<x:5, rest:bits>> -> Ok(#(x, rest))
+    <<24:int-size(5), val:int-unsigned-size(8), rest:bits>> -> Ok(#(val, rest))
+    <<25:int-size(5), val:int-unsigned-size(16), rest:bits>> -> Ok(#(val, rest))
+    <<26:int-size(5), val:int-unsigned-size(32), rest:bits>> -> Ok(#(val, rest))
+    <<27:int-size(5), val:int-unsigned-size(64), rest:bits>> -> Ok(#(val, rest))
+    <<x:int-size(5), _:bits>> if 27 < x -> Error(InvalidMajorArg(x))
+    <<x:int-size(5), rest:bits>> if x < 24 -> Ok(#(x, rest))
     _ -> Error(PrematureEOF)
   }
 }
 
 fn decode_negative_int(a: BitArray) -> DecodeResult(Int) {
   case a {
-    <<24:5, val:int-unsigned-size(1), rest:bits>> -> Ok(#(1 - val, rest))
-    <<25:5, val:int-unsigned-size(2), rest:bits>> -> Ok(#(1 - val, rest))
-    <<26:5, val:int-unsigned-size(4), rest:bits>> -> Ok(#(1 - val, rest))
-    <<27:5, val:int-unsigned-size(8), rest:bits>> -> Ok(#(1 - val, rest))
-    <<x:5, _rest:bits>> if 27 < x -> Error(InvalidMajorArg(x))
-    <<x:5, rest:bits>> -> Ok(#(1 - x, rest))
+    <<24:int-size(5), val:int-unsigned-size(8), rest:bits>> ->
+      Ok(#(1 - val, rest))
+    <<25:int-size(5), val:int-unsigned-size(16), rest:bits>> ->
+      Ok(#(1 - val, rest))
+    <<26:int-size(5), val:int-unsigned-size(32), rest:bits>> ->
+      Ok(#(1 - val, rest))
+    <<27:int-size(5), val:int-unsigned-size(64), rest:bits>> ->
+      Ok(#(1 - val, rest))
+    <<x:int-size(5), rest:bits>> if x < 24 -> Ok(#(1 - x, rest))
+    <<x:int-size(5), _:bits>> if 27 < x -> Error(InvalidMajorArg(x))
     _ -> Error(PrematureEOF)
   }
 }
@@ -58,15 +60,13 @@ fn decode_negative_int(a: BitArray) -> DecodeResult(Int) {
 /// Decodes an array of bytes
 pub fn decode_bytes(a: BitArray) -> DecodeResult(BitArray) {
   case a {
-    <<2:3, rest:bits>> ->
-      case decode_positive_int(rest) {
-        Error(e) -> Error(e)
-        Ok(#(count, rest)) ->
-          case rest {
-            <<x:bytes-size(count), rest:bits>> -> Ok(#(x, rest))
-            _ -> Error(PrematureEOF)
-          }
+    <<2:3, rest:bits>> -> {
+      use #(count, rest) <- try(decode_positive_int(rest))
+      case rest {
+        <<x:bytes-size(count), rest:bits>> -> Ok(#(x, rest))
+        _ -> Error(PrematureEOF)
       }
+    }
     // TODO: handle indefinite sized bytes
     <<x:3, _:bits>> -> Error(InvalidMajorArg(x))
     _ -> Error(PrematureEOF)
@@ -102,12 +102,22 @@ pub fn decode_string(a: BitArray) -> DecodeResult(String) {
 //  case a {
 //    <<4:3, rest:bits>> -> {
 //      use #(count, rest) <- try(decode_positive_int(rest))
-//      use result <- try(iterator.range(from: 0, to: count)
+//      use result <- try(
+//        iterator.range(from: 0, to: count)
+//        |> iterator.transform(rest, fn(b, _) {
+//          try(f(b)
+//          todo
+//        }),
+//      )
 //    }
 //  }
 //}
 //
-//fn decode_list_item(a: BitArray, count: Int, f: fn(BitArray) -> DecodeResult(List(t))) {
+//fn decode_list_item(
+//  a: BitArray,
+//  count: Int,
+//  f: fn(BitArray) -> DecodeResult(List(t)),
+//) {
 //  use #(item, rest) <- try(f(a))
 //  case count {
 //    x -> [item, ..decode_list_item(rest, x - 1, f)]
