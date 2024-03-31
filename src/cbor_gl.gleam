@@ -1,5 +1,5 @@
 import gleam/bit_array.{to_string}
-import gleam/result.{try}
+import gleam/result.{replace_error, try}
 
 pub opaque type CborError {
   /// Indicates the input ended prematurely and decoding could not continue.
@@ -75,24 +75,20 @@ pub fn decode_bytes(a: BitArray) -> DecodeResult(BitArray) {
 
 pub fn decode_string(a: BitArray) -> DecodeResult(String) {
   case a {
-    <<3:3, rest:bits>> ->
-      case decode_positive_int(rest) {
-        Error(e) -> Error(e)
-        Ok(#(count, rest)) ->
-          case rest {
-            <<x:bytes-size(count), rest:bits>> ->
-              case to_string(x) {
-                Ok(s) -> Ok(#(s, rest))
-                Error(_) -> Error(MalformedUTF8)
-              }
-            _ -> Error(PrematureEOF)
-          }
+    <<3:3, rest:bits>> -> {
+      use #(count, rest) <- try(decode_positive_int(rest))
+      case rest {
+        <<x:bytes-size(count), rest:bits>> -> {
+          use s <- try(replace_error(to_string(x), MalformedUTF8))
+          Ok(#(s, rest))
+        }
+        _ -> Error(PrematureEOF)
       }
+    }
     <<x:3, _:bits>> -> Error(InvalidMajorArg(x))
     _ -> Error(PrematureEOF)
   }
 }
-
 /// Decodes a homogenous array or list of items from BitArray using the
 /// provided callback function.
 //pub fn decode_list(
