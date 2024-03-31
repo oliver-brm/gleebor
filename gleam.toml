@@ -14,6 +14,7 @@ licences = ["MIT"]
 
 [dependencies]
 gleam_stdlib = "~> 0.36 or ~> 1.0"
+rad = "~> 1.2"
 
 [dev-dependencies]
 gleeunit = "~> 1.0"
