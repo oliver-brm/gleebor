@@ -1,6 +1,6 @@
+import cbor_gl
 import gleeunit
 import gleeunit/should
-import cbor_gl
 
 pub fn main() {
   gleeunit.main()
@@ -93,9 +93,14 @@ pub fn decode_byte_string_test() {
   |> should.be_ok()
   |> should.equal(#(<<123>>, <<>>))
   // a larger one, uses a u8
-  cbor_gl.decode_bytes(<<2:3, 24:5, 32:8, 78:int-size(64), 78:int-size(64), 78:int-size(64), 78:int-size(64)>>)
+  cbor_gl.decode_bytes(<<
+    2:3, 24:5, 32:8, 78:int-size(64), 78:int-size(64), 78:int-size(64),
+    78:int-size(64),
+  >>)
   |> should.be_ok()
-  |> should.equal(#(<<78:int-size(64), 78:int-size(64), 78:int-size(64), 78:int-size(64)>>, <<>>))
+  |> should.equal(
+    #(<<78:int-size(64), 78:int-size(64), 78:int-size(64), 78:int-size(64)>>, <<>>),
+  )
 }
 
 pub fn decode_uft8_string_test() {
@@ -104,7 +109,9 @@ pub fn decode_uft8_string_test() {
   |> should.be_ok()
   |> should.equal(#("N", <<>>))
   // a larger one, uses a u8
-  cbor_gl.decode_string(<<3:3, 24:5, 36:8, "Hello, world! This is a long string!":utf8>>)
+  cbor_gl.decode_string(<<
+    3:3, 24:5, 36:8, "Hello, world! This is a long string!":utf8,
+  >>)
   |> should.be_ok()
   |> should.equal(#("Hello, world! This is a long string!", <<>>))
 }
