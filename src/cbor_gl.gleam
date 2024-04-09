@@ -1,10 +1,10 @@
 import gleam/bit_array.{to_string}
+import gleam/iterator.{type Iterator, type Step, Done, Next}
 import gleam/result.{replace_error, try}
 
 pub opaque type CborError {
   /// Indicates the input ended prematurely and decoding could not continue.
   PrematureEOF
-  Encode
   /// This indicates that the major type in the payload was one that is not
   /// valid according to the CBOR specification. See RFC 8949 section 3.
   InvalidMajorArg(Int)
@@ -89,34 +89,37 @@ pub fn decode_string(a: BitArray) -> DecodeResult(String) {
     _ -> Error(PrematureEOF)
   }
 }
+
 /// Decodes a homogenous array or list of items from BitArray using the
 /// provided callback function.
-//pub fn decode_list(
-//  a: BitArray,
-//  f: fn(BitArray) -> DecodeResult(t),
-//) -> DecodeResult(List(t)) {
-//  case a {
-//    <<4:3, rest:bits>> -> {
-//      use #(count, rest) <- try(decode_positive_int(rest))
-//      use result <- try(
-//        iterator.range(from: 0, to: count)
-//        |> iterator.transform(rest, fn(b, _) {
-//          try(f(b)
-//          todo
-//        }),
-//      )
-//    }
-//  }
-//}
-//
-//fn decode_list_item(
-//  a: BitArray,
-//  count: Int,
-//  f: fn(BitArray) -> DecodeResult(List(t)),
-//) {
-//  use #(item, rest) <- try(f(a))
-//  case count {
-//    x -> [item, ..decode_list_item(rest, x - 1, f)]
-//    0 -> []
-//  }
-//}
+pub fn decode_list(
+  a: BitArray,
+  f: fn(BitArray) -> DecodeResult(t),
+) -> Result(Iterator(DecodeResult(t)), CborError) {
+  case a {
+    <<4:3, rest:bits>> -> {
+      use #(count, rest) <- try(decode_positive_int(rest))
+      Ok(
+        iterator.unfold(#(count, rest), fn(n: #(Int, BitArray)) -> Step(
+          DecodeResult(t),
+          #(Int, BitArray),
+        ) {
+          case n {
+            #(0, _) -> Done
+            #(remaining, rest) ->
+              case f(rest) {
+                Ok(#(result, rest)) ->
+                  Next(Ok(#(result, rest)), #(remaining - 1, rest))
+                Error(e) -> {
+                  // Yield the error, and prevent from continuing
+                  Next(Error(e), #(0, rest))
+                }
+              }
+          }
+        }),
+      )
+    }
+    <<x:3, _:bits>> -> Error(InvalidMajorArg(x))
+    _ -> Error(PrematureEOF)
+  }
+}
