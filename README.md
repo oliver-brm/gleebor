@@ -52,7 +52,7 @@ gleam shell # Run an Erlang shell
 The following describes the current status for this library's progress.
 
 
-- [/] Decode
+- [ ] Decode
   - [x] Ints
   - [ ] Floats
   - [x] Text Strings (Sized)
