@@ -2,7 +2,7 @@ import gleam/bit_array.{to_string}
 import gleam/iterator.{type Iterator, type Step, Done, Next}
 import gleam/result.{replace_error, try}
 
-pub opaque type CborError {
+pub type CborError {
   /// Indicates the input ended prematurely and decoding could not continue.
   PrematureEOF
   /// This indicates that the major type in the payload was one that is not
@@ -93,12 +93,13 @@ pub fn decode_string(a: BitArray) -> DecodeResult(String) {
 /// Decodes a homogenous array or list of items from BitArray using the
 /// provided callback function.
 pub fn decode_list(
-  a: BitArray,
-  f: fn(BitArray) -> DecodeResult(t),
+  buffer a: BitArray,
+  with f: fn(BitArray) -> DecodeResult(t),
 ) -> Result(Iterator(DecodeResult(t)), CborError) {
   case a {
     <<4:3, rest:bits>> -> {
       use #(count, rest) <- try(decode_positive_int(rest))
+      // TODO: refactor this to be less ugly
       Ok(
         iterator.unfold(#(count, rest), fn(n: #(Int, BitArray)) -> Step(
           DecodeResult(t),
