@@ -1,9 +1,9 @@
-# CBOR
+# GleeBOR
 
-### A [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949.html) Library for Gleam
+### A CBOR ([RFC 8949](https://www.rfc-editor.org/rfc/rfc8949.html)) Library for Gleam
 
-[![Package Version](https://img.shields.io/hexpm/v/cbor)](https://hex.pm/packages/cbor)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/cbor/)
+[![Package Version](https://img.shields.io/hexpm/v/gleebor)](https://hex.pm/packages/gleebor)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/gleebor/)
 
 CBOR is a self-describing standardized data format used for data interchange. It's
 efficient, generally pretty fast, and best of all: has high quality implementations in
@@ -16,10 +16,10 @@ CBOR support!
 
 
 ```sh
-gleam add cbor
+gleam add gleebor
 ```
 ```gleam
-import cbor
+import gleebor
 import io
 
 fn read_my_bytes() {
@@ -32,12 +32,12 @@ pub fn main() {
   // Get your bytes somehow!
   let bytes = read_my_bytes()
 
-  let assert Ok(number) = cbor.decode_int(bytes)
+  let assert Ok(number) = gleebor.decode_int(bytes)
   io.debug(number) // => 123
 }
 ```
 
-Further documentation can be found at <https://hexdocs.pm/cbor>.
+Further documentation can be found at <https://hexdocs.pm/gleebor>.
 
 ## Development
 
