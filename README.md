@@ -10,7 +10,7 @@ efficient, generally pretty fast, and best of all: has high quality implementati
 many languages. This libraries goal is to add to the list of languages that have strong
 CBOR support!
 
-> [!note] The `BitArray` syntax used throughout this library is currently unsupported by
+> [!NOTE] The `BitArray` syntax used throughout this library is currently unsupported by
 > the JavaScript backend. Until this is fixed upstream, this library is only expected to
 > work for BEAM backed applications.
 
