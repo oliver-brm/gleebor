@@ -1,9 +1,19 @@
 # CBOR
 
-### A RFC 8949 Library for Gleam
+### A [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949.html) Library for Gleam
 
 [![Package Version](https://img.shields.io/hexpm/v/cbor)](https://hex.pm/packages/cbor)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/cbor/)
+
+CBOR is a self-describing standardized data format used for data interchange. It's
+efficient, generally pretty fast, and best of all: has high quality implementations in
+many languages. This libraries goal is to add to the list of languages that have strong
+CBOR support!
+
+> [!note] The `BitArray` syntax used throughout this library is currently unsupported by
+> the JavaScript backend. Until this is fixed upstream, this library is only expected to
+> work for BEAM backed applications.
+
 
 ```sh
 gleam add cbor
