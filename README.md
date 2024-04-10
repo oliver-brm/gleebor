@@ -1,25 +1,63 @@
-# cbor_gl
+# CBOR
 
-[![Package Version](https://img.shields.io/hexpm/v/cbor_gl)](https://hex.pm/packages/cbor_gl)
-[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/cbor_gl/)
+### A RFC 8949 Library for Gleam
+
+[![Package Version](https://img.shields.io/hexpm/v/cbor)](https://hex.pm/packages/cbor)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/cbor/)
 
 ```sh
-gleam add cbor_gl
+gleam add cbor
 ```
 ```gleam
-import cbor_gl
+import cbor
+import io
+
+fn read_my_bytes() {
+  // 0 major arg, 24 to signal the following byte is the payload value, 123 is an 8-bit
+  //number
+  <<0:3, 24:5, 123:8>>
+}
 
 pub fn main() {
-  // TODO: An example of the project in use
+  // Get your bytes somehow!
+  let bytes = read_my_bytes()
+
+  let assert Ok(number) = cbor.decode_int(bytes)
+  io.debug(number) // => 123
 }
 ```
 
-Further documentation can be found at <https://hexdocs.pm/cbor_gl>.
+Further documentation can be found at <https://hexdocs.pm/cbor>.
 
 ## Development
 
 ```sh
-gleam run   # Run the project
 gleam test  # Run the tests
 gleam shell # Run an Erlang shell
 ```
+
+## Status
+
+The following describes the current status for this library's progress.
+
+
+- [/] Decode
+  - [x] Ints
+  - [ ] Floats
+  - [x] Text Strings (Sized)
+  - [x] Bytes (sized)
+  - [x] Arrays (sized)
+  - [ ] Maps
+  - [ ] Tags
+  - [ ] Indefinite sequences
+- [ ] Encode
+  - [ ] Ints
+  - [ ] Floats
+  - [ ] Text Strings (Sized)
+  - [ ] Bytes (sized)
+  - [ ] Arrays (sized)
+  - [ ] Maps
+  - [ ] Tags
+  - [ ] Indefinite sequences
+
+
