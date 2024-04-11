@@ -1,5 +1,5 @@
-import gleebor
 import gleam/iterator
+import gleebor
 import gleeunit
 import gleeunit/should
 
@@ -19,7 +19,10 @@ pub fn decode_byte_string_test() {
   >>)
   |> should.be_ok()
   |> should.equal(
-    #(<<78:int-size(64), 78:int-size(64), 78:int-size(64), 78:int-size(64)>>, <<>>),
+    #(
+      <<78:int-size(64), 78:int-size(64), 78:int-size(64), 78:int-size(64)>>,
+      <<>>,
+    ),
   )
 }
 
