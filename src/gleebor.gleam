@@ -44,14 +44,14 @@ fn decode_positive_int(a: BitArray) -> DecodeResult(Int) {
 fn decode_negative_int(a: BitArray) -> DecodeResult(Int) {
   case a {
     <<24:int-size(5), val:int-unsigned-size(8), rest:bits>> ->
-      Ok(#(1 - val, rest))
+      Ok(#(-1 - val, rest))
     <<25:int-size(5), val:int-unsigned-size(16), rest:bits>> ->
-      Ok(#(1 - val, rest))
+      Ok(#(-1 - val, rest))
     <<26:int-size(5), val:int-unsigned-size(32), rest:bits>> ->
-      Ok(#(1 - val, rest))
+      Ok(#(-1 - val, rest))
     <<27:int-size(5), val:int-unsigned-size(64), rest:bits>> ->
-      Ok(#(1 - val, rest))
-    <<x:int-size(5), rest:bits>> if x < 24 -> Ok(#(1 - x, rest))
+      Ok(#(-1 - val, rest))
+    <<x:int-size(5), rest:bits>> if x < 24 -> Ok(#(-1 - x, rest))
     <<x:int-size(5), _:bits>> if 27 < x -> Error(InvalidMajorArg(x))
     _ -> Error(PrematureEOF)
   }
