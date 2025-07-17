@@ -1,6 +1,6 @@
 import gleam/bit_array.{to_string}
-import gleam/iterator.{type Iterator, type Step, Done, Next}
 import gleam/result.{replace_error, try}
+import gleam/yielder.{type Step, type Yielder, Done, Next}
 
 pub type CborError {
   /// Indicates the input ended prematurely and decoding could not continue.
@@ -95,13 +95,13 @@ pub fn decode_string(a: BitArray) -> DecodeResult(String) {
 pub fn decode_list(
   buffer a: BitArray,
   with f: fn(BitArray) -> DecodeResult(t),
-) -> Result(Iterator(DecodeResult(t)), CborError) {
+) -> Result(Yielder(DecodeResult(t)), CborError) {
   case a {
     <<4:3, rest:bits>> -> {
       use #(count, rest) <- try(decode_positive_int(rest))
       // TODO: refactor this to be less ugly
       Ok(
-        iterator.unfold(#(count, rest), fn(n: #(Int, BitArray)) -> Step(
+        yielder.unfold(#(count, rest), fn(n: #(Int, BitArray)) -> Step(
           DecodeResult(t),
           #(Int, BitArray),
         ) {
