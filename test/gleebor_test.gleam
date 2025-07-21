@@ -1,4 +1,6 @@
+import gleam/bit_array
 import gleam/list
+import gleam/result
 import gleebor
 import gleeunit
 
@@ -83,15 +85,25 @@ pub fn decode_byte_string_test() {
   })
 }
 
-pub fn decode_byte_string_wrong_argument_test() {
-  [28, 29, 30, 31]
+/// This checks if a wrong _length_ argument, which should be in [0-27, 31],
+/// results in an `InvalidMajorArg(wrong_length)` `Error`.
+pub fn decode_byte_string_wrong_major_arg_test() {
+  [28, 29, 30]
   |> list.each(fn(length) {
     assert gleebor.decode_bytes(<<2:3, length:5, 239>>)
       == Error(gleebor.InvalidMajorArg(length))
   })
 }
 
-pub fn decode_larget_byte_string_test() {
+pub fn decode_byte_string_wrong_major_type_test() {
+  [0, 1, 3, 4, 5, 6, 7]
+  |> list.each(fn(wrong_type) {
+    assert gleebor.decode_bytes(<<wrong_type:3, 8:5, 12_345:64>>)
+      == Error(gleebor.IncorrectType(major_type: wrong_type))
+  })
+}
+
+pub fn decode_large_byte_string_test() {
   // a larger one, 32 bytes of data
   let data = <<
     78:int-size(64), 78:int-size(64), 78:int-size(64), 78:int-size(64),
@@ -100,13 +112,22 @@ pub fn decode_larget_byte_string_test() {
   assert gleebor.decode_bytes(large_byte_string) == Ok(#(data, <<>>))
 }
 
+pub fn decode_indefinite_byte_string_test() {
+  let chunk1 = <<2:3, 4:5, 2_864_434_397:32>>
+  let chunk2 = <<2:3, 3:5, 15_663_001:24>>
+  let break = <<7:3, 31:5>>
+  let cbor = <<2:3, 31:5, chunk1:bits, chunk2:bits, break:bits>>
+  use expected <- result.map(bit_array.base16_decode("aabbccddeeff99"))
+  assert gleebor.decode_bytes(cbor) == Ok(#(expected, <<>>))
+}
+
 pub fn decode_uft8_string_test() {
-  // a small byte array
+  // an empty text string
+  assert gleebor.decode_string(<<3:3, 0:5>>) == Ok(#("", <<>>))
+  // a small text string, in fact only a single letter
   assert gleebor.decode_string(<<3:3, 1:5, "N":utf8>>) == Ok(#("N", <<>>))
   // a larger one, uses a u8
-  let large_string = <<
-    3:3, 24:5, 36:8, "Hello, world! This is a long string!":utf8,
-  >>
   let expected = "Hello, world! This is a long string!"
+  let large_string = <<3:3, 24:5, 36:8, expected:utf8>>
   assert gleebor.decode_string(large_string) == Ok(#(expected, <<>>))
 }

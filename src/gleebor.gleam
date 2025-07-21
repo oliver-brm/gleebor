@@ -1,17 +1,22 @@
 import gleam/bit_array.{to_string}
-import gleam/result.{replace_error, try}
+import gleam/result.{map, replace_error, try}
 import gleam/yielder.{type Step, type Yielder, Done, Next}
 
 pub type CborError {
   /// Indicates the input ended prematurely and decoding could not continue.
   PrematureEOF
-  /// This indicates that the major type in the payload was one that is not
-  /// valid according to the CBOR specification. See RFC 8949 section 3.
-  InvalidMajorArg(Int)
-  /// Indicates the type decoded did not match the expected type.
+  /// Indicates that the major type decoded did not match the expected type.
   IncorrectType(
-    /// the major_type is the CBOR Section 3.1 Major Types indicator.
+    /// the `major_type` is represented as the first 3 bits of a CBOR data item.
+    /// An overview is provided in in the CBOR spec, section 3.1, see also
+    /// [Table 1](https://www.rfc-editor.org/rfc/rfc8949.html#major-type-table) therein.
     major_type: Int,
+  )
+  /// Indicates that the argument in the payload was one that is not
+  /// valid according to the CBOR specification. See RFC 8949 section 3.
+  InvalidMajorArg(
+    /// the `major_arg` is represented as the 5 bits following the _major type_.
+    major_arg: Int,
   )
   MalformedUTF8
 }
@@ -107,17 +112,36 @@ fn decode_negative_int(a: BitArray) -> DecodeResult(Int) {
 /// ```
 pub fn decode_bytes(a: BitArray) -> DecodeResult(BitArray) {
   case a {
-    <<2:3, argument_and_data:bits>> -> {
-      use #(count, data) <- try(decode_positive_int(argument_and_data))
-      case data {
-        <<x:bytes-size(count), rest:bits>> -> Ok(#(x, rest))
-        _ -> Error(PrematureEOF)
-      }
-    }
-    // TODO: handle indefinite sized bytes
-    <<2:3, 31:5, _:bits>> -> todo
-    <<x:3, _:bits>> -> Error(InvalidMajorArg(x))
+    <<2:3, 24:5, s:int-unsigned-size(8), val:bytes-size(s), rest:bits>> ->
+      Ok(#(val, rest))
+    <<2:3, 25:5, s:int-unsigned-size(16), val:bytes-size(s), rest:bits>> ->
+      Ok(#(val, rest))
+    <<2:3, 26:5, s:int-unsigned-size(32), val:bytes-size(s), rest:bits>> ->
+      Ok(#(val, rest))
+    <<2:3, 27:5, s:int-unsigned-size(64), val:bytes-size(s), rest:bits>> ->
+      Ok(#(val, rest))
+    <<2:3, s:int-unsigned-size(5), val:bytes-size(s), rest:bits>> ->
+      Ok(#(val, rest))
+    <<2:3, 31:5, data:bits>> -> decode_indefinite_bytes(data, <<>>)
+    <<2:3, a:5, _>> if a < 31 -> Error(InvalidMajorArg(a))
+    <<m:3, _:bits>> -> Error(IncorrectType(major_type: m))
     _ -> Error(PrematureEOF)
+  }
+}
+
+fn decode_indefinite_bytes(b: BitArray, acc: BitArray) -> DecodeResult(BitArray) {
+  case b {
+    // The spec does not allow nesting for byte strings and text strings
+    <<2:3, 31:5, _:bits>> -> Error(InvalidMajorArg(31))
+    // The "break" stop code, break recursion and return the accumulated data
+    <<7:3, 31:5, rest:bits>> -> Ok(#(acc, rest))
+    chunks -> {
+      use #(data_item, rest) <- try(decode_bytes(chunks))
+      decode_indefinite_bytes(
+        rest,
+        bit_array.append(to: acc, suffix: data_item),
+      )
+    }
   }
 }
 
